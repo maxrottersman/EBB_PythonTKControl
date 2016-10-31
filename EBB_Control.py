@@ -23,6 +23,9 @@ strVersion =  StringVar()
 global comPort
 global comPortName
 global serial_list
+global motor_moves_on
+
+motor_moves_on = False
 
 comPort = serial.Serial()
 
@@ -237,17 +240,15 @@ def ser_test_port():
     #serialPort.close()
 
 def shutter_fire():
-    comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
-    #S2,27500,5,10,50
+    time.sleep(1.5)
+    # fire shutter
     comCMD = 'S2,24000,5\r'.encode('ascii')
-    #comCMD = 'TP/r'.encode('ascii')
     print(comCMD)
     comPort.write(comCMD)
-    time.sleep(.300)
+    time.sleep(.450)
     comCMD = 'S2,12000,5\r'.encode('ascii')
     comPort.write(comCMD)
     strVersion = comPort.readline()
-
     status_entry.delete(0, END)
     status_entry.insert(50, strVersion)
 
@@ -262,6 +263,7 @@ def run_RLBT():
         # fire first shutter
         # Open PORT
         comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
+        global comPort
 
         # defaults
         hstep = h_step_entry.get()
@@ -272,101 +274,69 @@ def run_RLBT():
         for r in range(1,(htiles+1)):
 
             # Set depending on odd/even row
-            vmove = 0  # default
+            vmove = vstep  # default
 
             # If we're at the beginning fire shutter
             if (r==1):
-                time.sleep(1.5)
+
                 # fire shutter
-                comCMD = 'S2,24000,5\r'.encode('ascii')
-                print(comCMD)
-                comPort.write(comCMD)
-                time.sleep(.450)
-                comCMD = 'S2,12000,5\r'.encode('ascii')
-                comPort.write(comCMD)
-                strVersion = comPort.readline()
-                status_entry.delete(0, END)
-                status_entry.insert(50, strVersion)
+                if motor_moves_on:
+                    shutter_fire()
 
             # Now go through vertical tiles
-            for c in range(1, (vtiles)):
+            for c in range(1, (vtiles+1)):
 
-                if (r % 2 ==0): # EVEN row
+                if r % 2 == 0: # EVEN row
                     # HORIZONTAL
                     hmove = str(int(hstep) * -1)  # reverse
-                    # If we're at the end of an odd row, we need to move up at end
-                    # VERTICAL
-                    if (c==vtiles-1):
-                        vmove = vstep
                 else: # ODD row
-                    # HORIZONTAL
                     hmove = hstep # forward
-                    # If we're at the end of an EVEN row, we need to move up at beginning
-                    # but not if we're at end row
-                    # VERTICAL
-                    if (c==vtiles-1):
-                        vmove = vstep
 
-                print("vmove is: " + str(vmove))
 
-                # If we're at the end of an odd row, we need to move up at end
-
-                # WE HAVE A HORIZONTAL MOVE
-                if (int(hmove)!=0):
+                # WE HAVE A HORIZONTAL MOVE (but not last one)
+                if int(hmove) != 0:
                     print('Tile '+str(r)+','+str(c)+' H-Step='+str(hmove))
                     # Move
-                    time.sleep(.250) # wait quarter of a second
                     sendstring = 'sm,' + timeformove + ',' + str(hmove) + ',0,\r'
-                    comPort.write(sendstring.encode('ascii'))
-                    strVersion = comPort.readline()
-                    status_entry.delete(0, END)
-                    status_entry.insert(50, strVersion)
+
+                    if motor_moves_on:
+                        time.sleep(.250) # wait quarter of a second
+                        comPort.write(sendstring.encode('ascii'))
+                        strVersion = comPort.readline()
+                        status_entry.delete(0, END)
+                        status_entry.insert(50, strVersion)
 
                     # fire shutter
-                    time.sleep(1.5)
-                    comCMD = 'S2,24000,5\r'.encode('ascii')
-                    print(comCMD)
-                    comPort.write(comCMD)
-                    time.sleep(.4500)
-                    comCMD = 'S2,12000,5\r'.encode('ascii')
-                    comPort.write(comCMD)
-                    strVersion = comPort.readline()
-                    status_entry.delete(0, END)
-                    status_entry.insert(50, strVersion)
-                    time.sleep(.250)  # wait quarter of a second
+                    if motor_moves_on:
+                        shutter_fire()
 
-                    # check for stop VERTICAL
+                    # check for stop in VERTICAL LOOP
                     master.update()
-                    if (running == False):
+                    if not running:
                         break
 
-                # WE HAVE A VERTICAL MOVE
-                if (int(vmove)!=0):
-                    # not last one
+                # WE HAVE A VERTICAL MOVE (but not if last row)
+                #print(str(c) + ":" + str(vtiles))
+                #   and (str(c) != str(vtiles)
+
+                if c == vtiles and r != htiles:
+
                     print('Tile ' + str(r) + ',' + str(c) + ' V-Step=' + str(vmove))
                     # Move
-                    time.sleep(.250)  # wait quarter of a second
                     sendstring = 'sm,' + timeformove + ',0,' + str(vmove) + '\r'
-                    comPort.write(sendstring.encode('ascii'))
-                    strVersion = comPort.readline()
-                    status_entry.delete(0, END)
-                    status_entry.insert(50, strVersion)
+                    if motor_moves_on:
+                        time.sleep(.250)  # wait quarter of a second
+                        comPort.write(sendstring.encode('ascii'))
+                        strVersion = comPort.readline()
+                        status_entry.delete(0, END)
+                        status_entry.insert(50, strVersion)
 
                 # If we've made a vertical move Let's fire shutter
-                    time.sleep(1.5)
                     # fire shutter
-                    comCMD = 'S2,24000,5\r'.encode('ascii')
-                    print(comCMD)
-                    comPort.write(comCMD)
-                    time.sleep(.450)
-                    comCMD = 'S2,12000,5\r'.encode('ascii')
-                    comPort.write(comCMD)
-                    strVersion = comPort.readline()
-                    status_entry.delete(0, END)
-                    status_entry.insert(50, strVersion)
-                    time.sleep(.250)  # wait quarter of a second
+                    if motor_moves_on:
+                        shutter_fire()
 
-                vmove = 0  # back to default
+            vmove = 0  # back to default
 
                 # 1 would be 1 second .05 half second
 
@@ -385,14 +355,15 @@ def ser_port_selected(selected_opt):
     print("comPortName is now: "+comPortName)
 
 def quit():
+    running = False
     if comPort is not None:
         try:
             comPort.close()
         except serial.SerialException:
             pass
 
-    global master
-    quit()
+    master.destroy()
+
 
 #########################
 
@@ -536,8 +507,8 @@ onrow+=1
 # Final Buttons
 # 3rd Row, column 0 and 1
 
-Button(master, text='Save Current Values', command=save_current_values).grid(row=onrow, column=1, sticky=W, padx=10, pady=4)
-Button(master, text='Quit', command=quit).grid(row=onrow, column=2, sticky=W, padx=10, pady=4)
+#Button(master, text='Save Current Values', command=save_current_values).grid(row=onrow, column=1, sticky=W, padx=10, pady=4)
+Button(master, text='Quit', command=quit).grid(row=onrow, column=1, sticky=W, padx=10, pady=4)
 
 # Pack
 
