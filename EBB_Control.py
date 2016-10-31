@@ -8,8 +8,8 @@ import serial
 import time
 
 # Defaults
-h_step_value_default = "4000"
-v_step_value_default = "780"
+h_step_value_default = "8100"
+v_step_value_default = "5500"
 timeformove = "1000" # eventually make config option
 
 # instance tkinter
@@ -260,7 +260,7 @@ def run_RLBT():
 
         # Put camera in start position
         # fire first shutter
-            # Open PORT
+        # Open PORT
         comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
 
         # defaults
@@ -268,39 +268,46 @@ def run_RLBT():
         vstep = v_step_entry.get()
         htiles = int(h_tiles_entry.get())
         vtiles = int(v_tiles_entry.get())
-        vmove = 0  # default
 
         for r in range(1,(htiles+1)):
 
-            # If we're at the beginning or end of a row
-            # we need to figure shutter
-            if (r==1):
+            # Set depending on odd/even row
+            vmove = 0  # default
 
-                time.sleep(1)
+            # If we're at the beginning fire shutter
+            if (r==1):
+                time.sleep(1.5)
                 # fire shutter
                 comCMD = 'S2,24000,5\r'.encode('ascii')
                 print(comCMD)
                 comPort.write(comCMD)
-                time.sleep(.300)
+                time.sleep(.450)
                 comCMD = 'S2,12000,5\r'.encode('ascii')
                 comPort.write(comCMD)
                 strVersion = comPort.readline()
                 status_entry.delete(0, END)
                 status_entry.insert(50, strVersion)
 
-            for c in range(1,(vtiles+1)):
+            # Now go through vertical tiles
+            for c in range(1, (vtiles)):
 
                 if (r % 2 ==0): # EVEN row
+                    # HORIZONTAL
                     hmove = str(int(hstep) * -1)  # reverse
                     # If we're at the end of an odd row, we need to move up at end
-                    if (c==7):
+                    # VERTICAL
+                    if (c==vtiles-1):
                         vmove = vstep
                 else: # ODD row
-                    hmove = hstep
+                    # HORIZONTAL
+                    hmove = hstep # forward
                     # If we're at the end of an EVEN row, we need to move up at beginning
                     # but not if we're at end row
-                    if (c==7) & (r!=htiles):
+                    # VERTICAL
+                    if (c==vtiles-1):
                         vmove = vstep
+
+                print("vmove is: " + str(vmove))
 
                 # If we're at the end of an odd row, we need to move up at end
 
@@ -315,12 +322,12 @@ def run_RLBT():
                     status_entry.delete(0, END)
                     status_entry.insert(50, strVersion)
 
-                    time.sleep(1)
                     # fire shutter
+                    time.sleep(1.5)
                     comCMD = 'S2,24000,5\r'.encode('ascii')
                     print(comCMD)
                     comPort.write(comCMD)
-                    time.sleep(.300)
+                    time.sleep(.4500)
                     comCMD = 'S2,12000,5\r'.encode('ascii')
                     comPort.write(comCMD)
                     strVersion = comPort.readline()
@@ -329,7 +336,7 @@ def run_RLBT():
                     time.sleep(.250)  # wait quarter of a second
 
                     # check for stop VERTICAL
-                    update()
+                    master.update()
                     if (running == False):
                         break
 
@@ -346,12 +353,12 @@ def run_RLBT():
                     status_entry.insert(50, strVersion)
 
                 # If we've made a vertical move Let's fire shutter
-                    time.sleep(1)
+                    time.sleep(1.5)
                     # fire shutter
                     comCMD = 'S2,24000,5\r'.encode('ascii')
                     print(comCMD)
                     comPort.write(comCMD)
-                    time.sleep(.300)
+                    time.sleep(.450)
                     comCMD = 'S2,12000,5\r'.encode('ascii')
                     comPort.write(comCMD)
                     strVersion = comPort.readline()
@@ -364,7 +371,7 @@ def run_RLBT():
                 # 1 would be 1 second .05 half second
 
             # check for stop HORIZONTAL
-            update()
+            master.update()
             if (running == False):
                 break
 
