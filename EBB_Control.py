@@ -25,6 +25,7 @@ global comPortName
 global serial_list
 global motor_moves_on
 
+# for debugging movements, turn motors off
 motor_moves_on = False
 
 comPort = serial.Serial()
@@ -316,9 +317,6 @@ def run_RLBT():
                         break
 
                 # WE HAVE A VERTICAL MOVE (but not if last row)
-                #print(str(c) + ":" + str(vtiles))
-                #   and (str(c) != str(vtiles)
-
                 if c == vtiles and r != htiles:
 
                     print('Tile ' + str(r) + ',' + str(c) + ' V-Step=' + str(vmove))
@@ -336,10 +334,6 @@ def run_RLBT():
                     if motor_moves_on:
                         shutter_fire()
 
-            vmove = 0  # back to default
-
-                # 1 would be 1 second .05 half second
-
             # check for stop HORIZONTAL
             master.update()
             if (running == False):
@@ -347,7 +341,6 @@ def run_RLBT():
 
         status_entry.delete(0,END)
         status_entry.insert(0,"Tiling done")
-
 
 def ser_port_selected(selected_opt):
     global comPortName
