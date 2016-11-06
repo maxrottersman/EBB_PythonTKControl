@@ -10,6 +10,8 @@ import time
 # Defaults
 h_step_value_default = "8100"
 v_step_value_default = "5500"
+h_tiles_default = "7"
+v_tiles_default = "7"
 timeformove = "1000" # eventually make config option
 
 # instance tkinter
@@ -258,13 +260,16 @@ def shutter_fire():
 ###########################
 def run_RLBT():
 
+    shotnumber = 1
+
     if running==True:
 
         # Put camera in start position
         # fire first shutter
         # Open PORT
-        comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
-        global comPort
+        if comPortName != "":
+            comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
+            global comPort
 
         # defaults
         hstep = h_step_entry.get()
@@ -272,30 +277,33 @@ def run_RLBT():
         htiles = int(h_tiles_entry.get())
         vtiles = int(v_tiles_entry.get())
 
+        # Row, or horizontal movements
         for r in range(1,(htiles+1)):
+
+            # are moving horizontally forward or backwards?
+            if r % 2 == 0:  # EVEN row
+                # HORIZONTAL
+                hmove = str(int(hstep) * -1)  # reverse
+            else:  # ODD row
+                hmove = hstep  # forward
 
             # Set depending on odd/even row
             vmove = vstep  # default
 
-            # If we're at the beginning fire shutter
-            if (r==1):
+            # Now go through vertical tiles (on each row)
+            for c in range(1, (vtiles+1)):
 
-                # fire shutter
+                # FIRE SHUTTER always
                 if motor_moves_on:
                     shutter_fire()
 
-            # Now go through vertical tiles
-            for c in range(1, (vtiles+1)):
+                print("Shot: " + str(shotnumber))
+                shotnumber += 1
 
-                if r % 2 == 0: # EVEN row
-                    # HORIZONTAL
-                    hmove = str(int(hstep) * -1)  # reverse
-                else: # ODD row
-                    hmove = hstep # forward
+                # ONLY MOVE CAMERA if not at end, if at end
+                # we'll leave that outside loop
 
-
-                # WE HAVE A HORIZONTAL MOVE (but not last one)
-                if int(hmove) != 0:
+                if c != vtiles:
                     print('Tile '+str(r)+','+str(c)+' H-Step='+str(hmove))
                     # Move
                     sendstring = 'sm,' + timeformove + ',' + str(hmove) + ',0,\r'
@@ -307,32 +315,23 @@ def run_RLBT():
                         status_entry.delete(0, END)
                         status_entry.insert(50, strVersion)
 
-                    # fire shutter
-                    if motor_moves_on:
-                        shutter_fire()
+                # check for stop in VERTICAL LOOP
+                master.update()
 
-                    # check for stop in VERTICAL LOOP
-                    master.update()
-                    if not running:
-                        break
+                if not running:
+                    break
 
-                # WE HAVE A VERTICAL MOVE (but not if last row)
-                if c == vtiles and r != htiles:
-
-                    print('Tile ' + str(r) + ',' + str(c) + ' V-Step=' + str(vmove))
-                    # Move
-                    sendstring = 'sm,' + timeformove + ',0,' + str(vmove) + '\r'
-                    if motor_moves_on:
-                        time.sleep(.250)  # wait quarter of a second
-                        comPort.write(sendstring.encode('ascii'))
-                        strVersion = comPort.readline()
-                        status_entry.delete(0, END)
-                        status_entry.insert(50, strVersion)
-
-                # If we've made a vertical move Let's fire shutter
-                    # fire shutter
-                    if motor_moves_on:
-                        shutter_fire()
+            # We're at the end of a row, so move up, but only if not at end
+            if r != htiles:
+                print('Tile ' + str(r) + ' V-Step=' + str(vmove))
+                # Move
+                sendstring = 'sm,' + timeformove + ',0,' + str(vmove) + '\r'
+                if motor_moves_on:
+                    time.sleep(.250)  # wait quarter of a second
+                    comPort.write(sendstring.encode('ascii'))
+                    strVersion = comPort.readline()
+                    status_entry.delete(0, END)
+                    status_entry.insert(50, strVersion)
 
             # check for stop HORIZONTAL
             master.update()
@@ -420,7 +419,7 @@ onrow+=1
 # H Tiles
 h_tiles_lbl = Label(master, text="H Tiles")
 h_tiles_entry = Entry(master)
-h_tiles_entry.insert(2,"7")
+h_tiles_entry.insert(2,h_tiles_default)
 
 h_tiles_lbl.grid(row=onrow,column=1,padx=4,pady=4)
 h_tiles_entry.grid(row=onrow, column=2,padx=4,pady=4)
@@ -430,7 +429,7 @@ onrow+=1
 # V Tiles
 v_tiles_lbl = Label(master, text="V Tiles")
 v_tiles_entry = Entry(master)
-v_tiles_entry.insert(2,"7")
+v_tiles_entry.insert(2,v_tiles_default)
 
 v_tiles_lbl.grid(row=onrow,column=1,padx=4,pady=4)
 v_tiles_entry.grid(row=onrow, column=2,padx=4,pady=4)
