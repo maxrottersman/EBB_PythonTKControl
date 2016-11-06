@@ -28,7 +28,7 @@ global serial_list
 global motor_moves_on
 
 # for debugging movements, turn motors off
-motor_moves_on = False
+motor_moves_on = True
 
 comPort = serial.Serial()
 
@@ -254,6 +254,7 @@ def shutter_fire():
     strVersion = comPort.readline()
     status_entry.delete(0, END)
     status_entry.insert(50, strVersion)
+    time.sleep(.5) # wait half a second before moving
 
 ##########################
 ### RUN ROUTINES TILING
@@ -270,6 +271,8 @@ def run_RLBT():
         if comPortName != "":
             comPort = serial.Serial(comPortName, timeout=1.0)  # 1 second timeout!
             global comPort
+
+        time.sleep(3) # wait for board to catchup or first shutter doesn't fire
 
         # defaults
         hstep = h_step_entry.get()
@@ -340,6 +343,8 @@ def run_RLBT():
 
         status_entry.delete(0,END)
         status_entry.insert(0,"Tiling done")
+
+        comPort.close()
 
 def ser_port_selected(selected_opt):
     global comPortName
