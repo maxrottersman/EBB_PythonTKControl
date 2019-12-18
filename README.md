@@ -1,5 +1,5 @@
 # EBB_PythonTKControl
-Sample app for controlling EiBotBoard (formerly EggBotBoard) using Python and TKinter GUI
+Sample app for controlling EiBotBoard (formerly EggBotBoard) using Python and TKinter GUI.  Used with my robotic DigiTiler.  More here: https://medium.com/@maxrottersman/large-format-digital-photography-through-my-digitiler-8a94a1099379?source=friends_link&sk=8ed4306c50161a250e730f2fd6463341
 
 Info on board (http://www.schmalzhaus.com/EBB/)
 
